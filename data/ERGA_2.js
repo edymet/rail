@@ -666,5 +666,5 @@ var json_ERGA_2 = {
       }
     }
   ],
-  "updated_at": "06/08/2026"
+  "updated_at": "06/06/2026"
 };
