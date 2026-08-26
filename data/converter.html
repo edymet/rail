@@ -2,513 +2,281 @@
 <html lang="el">
 <head>
 <meta charset="UTF-8">
-<title>Μετατροπή Excel → .js (χάρτης έργων)</title>
+<title>Converter – ΣΙΔΗΡΟΔΡΟΜΙΚΑ Έργα (Ενοποιημένη Βάση)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-<style>
-  *{box-sizing:border-box}
-  body { font-family: Arial, sans-serif; background:#f1f5f9; padding:20px; max-width: 820px; margin: 0 auto; color: #1e293b; line-height: 1.5; }
-  h1 { font-size:17px; color:#1E3A5F; margin-bottom:4px; }
-  .sub { font-size:12px; color:#64748b; margin-bottom:18px; }
-  .card { background:#fff; border-radius:10px; padding:18px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,.1); }
-  .card h2 { font-size:13px; font-weight:700; color:#1E3A5F; margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid #e2e8f0; }
-
-  #dropzone {
-    border:2px dashed #cbd5e1; border-radius:8px; padding:28px; text-align:center;
-    cursor:pointer; transition:.2s; background:#f8fafc; font-size:13px; color:#64748b;
-  }
-  #dropzone.dragover { border-color:#3b82f6; background:#eff6ff; color:#1d4ed8; }
-  #dropzone .dz-icon { font-size:26px; display:block; margin-bottom:6px; }
-  #dropzone strong { display:block; font-size:15px; margin-bottom:4px; color:#1E3A5F; }
-
-  #fileStatus { display:flex; flex-direction:column; gap:8px; margin-top:14px; }
-  .pill-row { display:flex; flex-direction:column; gap:2px; }
-  .file-pill {
-    display:flex; align-items:center; gap:8px; background:#f8fafc; border:1px solid #e2e8f0;
-    border-radius:8px; padding:8px 14px; font-size:12.5px; color:#64748b;
-  }
-  .file-pill.filled { border-color:#86efac; background:#f0fdf4; color:#166534; }
-  .file-pill.error  { border-color:#fca5a5; background:#fee2e2; color:#991b1b; }
-  .file-pill .dot { width:9px; height:9px; border-radius:50%; background:#cbd5e1; flex-shrink:0; }
-  .file-pill.filled .dot { background:#22c55e; }
-  .file-pill.error  .dot { background:#ef4444; }
-  .pill-main { font-weight:700; }
-  .pill-desc { color:#94a3b8; font-size:11.5px; margin-left:2px; }
-  .file-pill.filled .pill-desc, .file-pill.error .pill-desc { display:none; }
-  .pill-err { font-size:11px; color:#991b1b; margin-top:2px; display:none; padding-left:2px; }
-  .file-pill.error + .pill-err { display:block; }
-  #hiddenInputs { display:none; }
-
-  button#btnConvert {
-    background:#1E3A5F; color:#fff; border:none; padding:10px 20px; border-radius:7px;
-    font-size:13px; font-weight:700; cursor:pointer; transition:.15s;
-  }
-  button#btnConvert:hover:not(:disabled) { background:#2d5282; }
-  button#btnConvert:disabled { background:#9bb0c4; cursor:not-allowed; }
-
-  #log { white-space:pre-wrap; background:#1f2d3d; color:#d9f0d9; font-family:Consolas,monospace; font-size:12px;
-         padding:14px; border-radius:8px; max-height:340px; overflow-y:auto; margin-top:14px; }
-  .downloads { margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; }
-  .downloads a { background:#0F5132; color:#fff; padding:9px 16px; border-radius:7px; text-decoration:none; font-weight:700; font-size:12.5px; }
-  .downloads a:hover { background:#145a38; }
-  .downloads a.zip { background:#5C2D91; }
-  .downloads a.zip:hover { background:#6d35a8; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f1f5f9;padding:20px;color:#1e293b}
+h1{font-size:17px;color:#1E3A5F;margin-bottom:4px}
+.sub{font-size:12px;color:#64748b;margin-bottom:18px}
+.card{background:#fff;border-radius:10px;padding:18px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.card h2{font-size:13px;font-weight:700;color:#1E3A5F;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0}
+.dz{border:2px dashed #cbd5e1;border-radius:8px;padding:28px;text-align:center;cursor:pointer;transition:.2s;background:#f8fafc;font-size:13px;color:#64748b}
+.dz:hover,.dz.drag{border-color:#3b82f6;background:#eff6ff;color:#1d4ed8}
+.dz b{display:block;font-size:15px;margin-bottom:4px;color:#1E3A5F}
+input[type=file]{display:none}
+.status{margin-top:10px;padding:10px 14px;border-radius:7px;font-size:12px;display:none}
+.ok{background:#dcfce7;color:#166534;border:1px solid #86efac;display:block}
+.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;display:block}
+.info{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;display:block}
+.btns{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+button{padding:9px 18px;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:6px}
+button:disabled{opacity:.4;cursor:not-allowed}
+.btn-erga{background:#1E3A5F;color:#fff}.btn-erga:hover:not(:disabled){background:#2d5282}
+.btn-detail{background:#0F5132;color:#fff}.btn-detail:hover:not(:disabled){background:#145a38}
+.btn-both{background:#5C2D91;color:#fff}.btn-both:hover:not(:disabled){background:#6d35a8}
+#prev{display:none;margin-top:12px;overflow-x:auto}
+table{border-collapse:collapse;font-size:11px;width:100%}
+th{background:#1E3A5F;color:#fff;padding:5px 8px;text-align:left;font-size:11px}
+td{padding:4px 8px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+tr:nth-child(even) td{background:#f8fafc}
+.badge{display:inline-block;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:700;color:#fff}
 </style>
 </head>
 <body>
 
-<h1>🔄 Converter – Βάση Σιδηροδρομικών Έργων</h1>
-<p class="sub">Σύρε τα 3 αρχεία (project_data.xlsx + τρέχοντα ERGA_2.js / detail_data.js) και ενημέρωσε αυτόματα τον χάρτη — μόνο οι αλλαγές σου εφαρμόζονται, τίποτα άλλο δεν χάνεται.</p>
+<h1>🔄 Converter – Ενοποιημένη Βάση Σιδηροδρομικών Έργων</h1>
+<p class="sub">Φόρτωσε το <strong>ERGA_UNIFIED_DATA.xlsx</strong> (sheet «ΒΑΣΗ ΕΡΓΩΝ») και δημιούργησε αυτόματα τα <code>ERGA_2.js</code> / <code>detail_data.js</code> για το σιδηροδρομικό site. Πλήρης ανακατασκευή — αντικαθιστά όλα τα έργα με βάση αυτό το αρχείο.</p>
 
 <div class="card">
-  <h2>📂 Αρχεία</h2>
-  <div id="dropzone">
-    <span class="dz-icon">📥</span>
-    <strong>Σύρε εδώ τα αρχεία</strong>
-    ή πάτα για να τα επιλέξεις από τον υπολογιστή σου
+  <h2>📂 Επιλογή Αρχείου</h2>
+  <div class="dz" id="dz">
+    <b>📥 Σύρε εδώ το ERGA_UNIFIED_DATA.xlsx</b>
+    ή κάνε κλικ για να επιλέξεις αρχείο
   </div>
-  <div id="fileStatus">
-    <div class="pill-row">
-      <div class="file-pill" id="pillXlsx"><span class="dot"></span>
-        <span class="pill-main">📊 project_data.xlsx</span>
-        <span class="pill-desc">— το νέο Excel με τις αλλαγές σου</span>
-      </div>
-      <div class="pill-err" id="errXlsx"></div>
-    </div>
-    <div class="pill-row">
-      <div class="file-pill" id="pillErga"><span class="dot"></span>
-        <span class="pill-main">🗺️ ERGA_2.js</span>
-        <span class="pill-desc">— το παλιό αρχείο από τον φάκελο data/</span>
-      </div>
-      <div class="pill-err" id="errErga"></div>
-    </div>
-    <div class="pill-row">
-      <div class="file-pill" id="pillDetail"><span class="dot"></span>
-        <span class="pill-main">📋 detail_data.js</span>
-        <span class="pill-desc">— το παλιό αρχείο από τον φάκελο data/</span>
-      </div>
-      <div class="pill-err" id="errDetail"></div>
-    </div>
-  </div>
-  <input type="file" id="hiddenInputs" multiple accept=".xlsx,.js">
+  <input type="file" id="fi" accept=".xlsx,.xls">
+  <div class="status" id="st"></div>
 </div>
 
-<div class="card">
-  <h2>⚡ Μετατροπή</h2>
-  <button id="btnConvert" disabled>Μετατροπή →</button>
-  <div id="log" style="display:none;"></div>
-  <div class="downloads" id="downloads" style="display:none;"></div>
+<div class="card" id="preview-card" style="display:none">
+  <h2>👁️ Προεπισκόπηση</h2>
+  <div id="prev"></div>
+  <div class="btns">
+    <button class="btn-erga" id="btn-erga" disabled>🚆 Κατέβασε ERGA_2.js</button>
+    <button class="btn-detail" id="btn-detail" disabled>📋 Κατέβασε detail_data.js</button>
+    <button class="btn-both" id="btn-both" disabled>⚡ Κατέβασε ΚΑΙ ΤΑ ΔΥΟ</button>
+  </div>
+  <div class="status" id="st2"></div>
 </div>
 
 <script>
-// ---------------------------------------------------------------
-// Ίδια αντιστοίχιση στηλών με το build_excel.py / apply_excel.py
-// (header text, erga_key, detail_canonical, color)
-// ---------------------------------------------------------------
-const COLUMNS = [
-  ["id", "id", null],
-  ["name ID", "name ID", null],
-  ["mis_code", "mis_code", null],
-  ["title (Τίτλος)", "title", "title"],
-  ["fund_prog (Πρόγραμμα)", "fund_prog", null],
-  ["descr/tion (σύντομη περιγραφή - popup)", "descr/tion", null],
-  ["budg_fund (Χρηματοδότηση)", "budg_fund", "budg_fund"],
-  ["contract_a (Ποσό Σύμβασης)", "contract_a", "contract_a"],
-  ["contractor (Ανάδοχος - popup)", "contractor", null],
-  ["sign_date (Ημ. Υπογραφής)", "sign_date", "sign_date"],
-  ["deadline (Προθεσμία)", "deadline", "deadline"],
-  ["status (Κατάσταση - popup, βάλε εδώ τα % ποσοστού)", "status", null],
-  ["pct_labels (ετικέτες ποσοστών, χωρισμένες με |)", "pct_labels", null],
-  ["critical_i (Κρίσιμα Θέματα)", "critical_i", "critical_i"],
-  ["popup_text (Αντικείμενο/Σχόλια - ΜΕΓΑΛΟ ΚΕΙΜΕΝΟ)", null, "popup_text"],
-];
+var parsed = null;
+var updatedDate = null;
 
-const DETAIL_FIELD_DEFS = [
-  ["title", "title", null],
-  ["network", "network", null],
-  ["beneficiary", "contractor", null],
-  ["budg_fund", "budg_fund", null],
-  ["contract_a", "contract_a", null],
-  ["sign_date", null, "Υπογραφ"],
-  ["deadline", "deadline", null],
-  ["mis_analytic", null, "MIS"],
-  ["phase", "phase", null],
-  ["popup_text", null, "popup"],
-  ["critical_i", null, "Κρίσιμα"],
-  ["completion_date", null, "Ολοκλήρωσ"],
-  ["funding_pct", "funding_pct", null],
-  ["invitation", "invitation", null],
-  ["legal_commit", "legal_commit", null],
-  ["payments", "payments", null],
-  ["entry_date", "entry_date", null],
-];
-
-function classifyDetailField(field) {
-  const key = field.key || "";
-  const label = field.label || "";
-  for (const [canonical, keyMatch, labelContains] of DETAIL_FIELD_DEFS) {
-    if (keyMatch !== null && key === keyMatch) return canonical;
-    if (labelContains !== null && label.includes(labelContains)) return canonical;
-  }
-  return null;
+var PROG_COLORS = { ymepera:'#0ea5e9', metafores:'#22c55e', cef14:'#a855f7', cef21:'#f97316', other:'#6b7280' };
+function classify(prog){
+  if(!prog) return 'other';
+  var p=prog.toUpperCase();
+  if(p.indexOf('ΥΜΕΠΕΡΑΑ')>-1) return 'ymepera';
+  if(p.indexOf('ΜΕΤΑΦΟΡΕΣ')>-1||p.indexOf('Π-ΜΕΤ')>-1) return 'metafores';
+  if(p.indexOf('CEF 2014')>-1) return 'cef14';
+  if(p.indexOf('CEF 2021')>-1) return 'cef21';
+  return 'other';
 }
 
-function loadJsVar(text) {
-  const m = text.match(/^\s*var\s+(\w+)\s*=\s*/);
-  if (!m) throw new Error("Δεν αναγνωρίστηκε η μορφή 'var X = {...};'");
-  let body = text.slice(m[0].length).trim();
-  if (body.endsWith(";")) body = body.slice(0, -1);
-  return { varname: m[1], data: JSON.parse(body) };
-}
+function ss(msg,cls,el){el=el||document.getElementById('st');el.textContent=msg;el.className='status '+cls}
 
-function dumpJsVar(varname, data) {
-  return `var ${varname} = ${JSON.stringify(data, null, 2)};\n`;
-}
+var dz=document.getElementById('dz'),fi=document.getElementById('fi');
+var prev=document.getElementById('prev');
+var btnErga=document.getElementById('btn-erga');
+var btnDetail=document.getElementById('btn-detail');
+var btnBoth=document.getElementById('btn-both');
+var previewCard=document.getElementById('preview-card');
 
-function shortVal(v, n = 60) {
-  if (v === null || v === undefined) return "(κενό)";
-  v = String(v).replace(/\n/g, " ⏎ ");
-  return v.length <= n ? v : v.slice(0, n) + "...";
-}
+dz.addEventListener('click',function(){fi.click()});
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',function(){dz.classList.remove('drag')});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('drag');load(e.dataTransfer.files[0])});
+fi.addEventListener('change',function(e){load(e.target.files[0])});
 
-function cellToStr(v) {
-  if (v === null || v === undefined || v === "") return null;
-  return String(v);
-}
+function load(file){
+  ss('Φόρτωση...','info');
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var shName = wb.SheetNames.find(function(n){return n.indexOf('ΒΑΣΗ')>=0}) || wb.SheetNames[0];
+      var ws=wb.Sheets[shName];
+      var all=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
 
-let logEl, downloadsEl;
+      var hdrIdx=all.findIndex(function(row){return String(row[0]).trim()==='ID'});
+      if(hdrIdx<0) throw new Error('Δεν βρέθηκε γραμμή επικεφαλίδων (ID) στο sheet «'+shName+'»');
 
-function log(msg) {
-  logEl.style.display = "block";
-  logEl.textContent += msg + "\n";
-  logEl.scrollTop = logEl.scrollHeight;
-}
-
-function readFileAsText(file) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result);
-    r.onerror = reject;
-    r.readAsText(file, "UTF-8");
-  });
-}
-
-function readFileAsArrayBuffer(file) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result);
-    r.onerror = reject;
-    r.readAsArrayBuffer(file);
-  });
-}
-
-function downloadBlob(filename, content, extraClass) {
-  const blob = new Blob([content], { type: "text/javascript;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.textContent = "⬇ Κατέβασε " + filename;
-  if (extraClass) a.className = extraClass;
-  downloadsEl.appendChild(a);
-  downloadsEl.style.display = "flex";
-  return a;
-}
-
-function downloadBoth(ergaA, detailA) {
-  // Trigger both downloads from one click. Some browsers block a second
-  // auto-download right after the first, so we stagger them slightly.
-  ergaA.click();
-  setTimeout(() => detailA.click(), 250);
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-  logEl = document.getElementById("log");
-  downloadsEl = document.getElementById("downloads");
-
-  const dropzone = document.getElementById("dropzone");
-  const hiddenInput = document.getElementById("hiddenInputs");
-  const pillXlsx   = document.getElementById("pillXlsx");
-  const pillErga   = document.getElementById("pillErga");
-  const pillDetail = document.getElementById("pillDetail");
-  const errXlsx    = document.getElementById("errXlsx");
-  const errErga    = document.getElementById("errErga");
-  const errDetail  = document.getElementById("errDetail");
-  const btn = document.getElementById("btnConvert");
-
-  const files = { xlsx: null, erga: null, detail: null };
-  // track validation errors per slot
-  const fileErrors = { xlsx: null, erga: null, detail: null };
-
-  // ── Classify by filename ──
-  function classify(file) {
-    const name = file.name.toLowerCase();
-    if (name.endsWith(".xlsx")) return "xlsx";
-    if (name.includes("detail")) return "detail";
-    if (name.endsWith(".js")) return "erga";
-    return null;
-  }
-
-  // ── Validate file content asynchronously ──
-  async function validateFile(fileKey, file) {
-    fileErrors[fileKey] = null;
-    try {
-      if (fileKey === "xlsx") {
-        const buf = await readFileAsArrayBuffer(file);
-        const wb = XLSX.read(buf, { type: "array" });
-        if (!wb.SheetNames.includes("ΕΡΓΑ"))
-          fileErrors[fileKey] = '❌ Λάθος αρχείο: δεν βρέθηκε tab "ΕΡΓΑ". Χρειάζεται το project_data.xlsx.';
-      } else {
-        const text = await readFileAsText(file);
-        const m = text.match(/^\s*var\s+(\w+)\s*=\s*/);
-        if (!m) {
-          fileErrors[fileKey] = "❌ Δεν αναγνωρίστηκε μορφή JS (var X = ...). Σωστό αρχείο;";
-          return;
-        }
-        const varname = m[1];
-        if (fileKey === "erga") {
-          // Must have features array (GeoJSON)
-          if (!text.includes('"features"') && !text.includes("features"))
-            fileErrors[fileKey] = `❌ Αυτό δεν μοιάζει με ERGA_2.js (δεν βρέθηκε "features"). Έβαλες λάθος αρχείο;`;
-          else if (varname.toLowerCase().includes("detail"))
-            fileErrors[fileKey] = `❌ Φαίνεται ότι έβαλες το detail_data.js αντί για ERGA_2.js.`;
-        } else {
-          // detail: must have fields arrays
-          if (!text.includes('"fields"'))
-            fileErrors[fileKey] = `❌ Αυτό δεν μοιάζει με detail_data.js (δεν βρέθηκε "fields"). Έβαλες λάθος αρχείο;`;
-          else if (text.includes('"features"'))
-            fileErrors[fileKey] = `❌ Φαίνεται ότι έβαλες το ERGA_2.js αντί για detail_data.js.`;
-        }
-      }
-    } catch(e) {
-      fileErrors[fileKey] = "❌ Σφάλμα ανάγνωσης: " + e.message;
-    }
-  }
-
-  // ── Update pill UI ──
-  function setPillState(pill, errEl, file, errMsg) {
-    if (!file) {
-      pill.classList.remove("filled", "error");
-      errEl.textContent = "";
-      errEl.style.display = "none";
-      return;
-    }
-    if (errMsg) {
-      pill.classList.remove("filled");
-      pill.classList.add("error");
-      errEl.textContent = errMsg;
-      errEl.style.display = "block";
-    } else {
-      pill.classList.add("filled");
-      pill.classList.remove("error");
-      errEl.textContent = "";
-      errEl.style.display = "none";
-    }
-  }
-
-  function updatePills() {
-    setPillState(pillXlsx,   errXlsx,   files.xlsx,   fileErrors.xlsx);
-    setPillState(pillErga,   errErga,   files.erga,   fileErrors.erga);
-    setPillState(pillDetail, errDetail, files.detail, fileErrors.detail);
-
-    pillXlsx.querySelector(".pill-main").textContent   = files.xlsx   ? "📊 " + files.xlsx.name   : "📊 project_data.xlsx";
-    pillErga.querySelector(".pill-main").textContent   = files.erga   ? "🗺️ " + files.erga.name   : "🗺️ ERGA_2.js";
-    pillDetail.querySelector(".pill-main").textContent = files.detail ? "📋 " + files.detail.name : "📋 detail_data.js";
-
-    const allPresent = files.xlsx && files.erga && files.detail;
-    const noErrors   = !fileErrors.xlsx && !fileErrors.erga && !fileErrors.detail;
-    btn.disabled = !(allPresent && noErrors);
-  }
-
-  async function handleFiles(fileList) {
-    const unknowns = [];
-    Array.from(fileList).forEach(file => {
-      const kind = classify(file);
-      if (kind === "xlsx")   files.xlsx   = file;
-      else if (kind === "detail") files.detail = file;
-      else if (kind === "erga")   files.erga   = file;
-      else unknowns.push(file.name);
-    });
-
-    if (unknowns.length) {
-      logEl.style.display = "block";
-      logEl.textContent = "⚠️ Αγνώστου τύπου αρχεία (αγνοήθηκαν): " + unknowns.join(", ") + "\n"
-        + "   Χρειάζονται: project_data.xlsx, ERGA_2.js, detail_data.js";
-    }
-
-    // Validate each present file
-    const toValidate = [];
-    if (files.xlsx)   toValidate.push(validateFile("xlsx",   files.xlsx));
-    if (files.erga)   toValidate.push(validateFile("erga",   files.erga));
-    if (files.detail) toValidate.push(validateFile("detail", files.detail));
-    await Promise.all(toValidate);
-    updatePills();
-  }
-
-  dropzone.addEventListener("click", () => hiddenInput.click());
-  hiddenInput.addEventListener("change", () => handleFiles(hiddenInput.files));
-
-  ["dragenter", "dragover"].forEach(evt =>
-    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add("dragover"); })
-  );
-  ["dragleave", "drop"].forEach(evt =>
-    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove("dragover"); })
-  );
-  dropzone.addEventListener("drop", e => {
-    if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files);
-  });
-
-  updatePills();
-
-  btn.addEventListener("click", async () => {
-    logEl.textContent = "";
-    downloadsEl.innerHTML = "";
-    downloadsEl.style.display = "none";
-    btn.disabled = true;
-    try {
-      log("Διαβάζω αρχεία...");
-      const [ergaText, detailText, xlsxBuf] = await Promise.all([
-        readFileAsText(files.erga),
-        readFileAsText(files.detail),
-        readFileAsArrayBuffer(files.xlsx),
-      ]);
-
-      const { varname: ergaVar, data: erga } = loadJsVar(ergaText);
-      const { varname: detailVar, data: detail } = loadJsVar(detailText);
-
-      const wb = XLSX.read(xlsxBuf, { type: "array" });
-      if (!wb.SheetNames.includes("ΕΡΓΑ")) {
-        throw new Error('Δεν βρέθηκε tab "ΕΡΓΑ" μέσα στο Excel.');
-      }
-      const sheet = wb.Sheets["ΕΡΓΑ"];
-      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
-      const headerRow = rows[2];
-      const headerIndex = {};
-      headerRow.forEach((h, i) => { headerIndex[h] = i; });
-
-      // Ημερομηνία ενημέρωσης: κελί D1 (δίπλα στον τίτλο, γραμμή 1) — διαβάζεται ως απλό κείμενο
-      // Ημερομηνία ενημέρωσης: κελί D1 (δίπλα στον τίτλο, γραμμή 1)
-      // Διαβάζεται με ασφάλεια είτε είναι απλό κείμενο είτε πραγματική ημερομηνία Excel
-      // (π.χ. αν το Excel το μετέτρεψε αυτόματα σε ημερομηνία μετά από επεξεργασία).
-      const updateDateCell = sheet["D1"];
-      let updatedDate = null;
-      if (updateDateCell) {
-        if (updateDateCell.t === "n" && typeof updateDateCell.v === "number") {
-          updatedDate = XLSX.SSF.format("dd/mm/yyyy", updateDateCell.v);
-        } else if (updateDateCell.w) {
-          updatedDate = String(updateDateCell.w).trim();
-        } else if (updateDateCell.v !== undefined && updateDateCell.v !== null) {
-          updatedDate = String(updateDateCell.v).trim();
-        }
-      }
-      if (updatedDate) {
-        erga.updated_at = updatedDate;
-        log(`🗓️ Ημερομηνία ενημέρωσης: ${updatedDate}`);
-      }
-
-      const ergaById = {};
-      erga.features.forEach(f => { ergaById[f.properties.id] = f.properties; });
-
-      const changes = [];
-
-      for (let r = 3; r < rows.length; r++) {
-        const row = rows[r];
-        const idCellHeader = "id";
-        const idIdx = headerIndex[idCellHeader];
-        if (idIdx === undefined || row[idIdx] === null || row[idIdx] === undefined) continue;
-        const pid = String(parseInt(row[idIdx], 10));
-        const nameIdx = headerIndex["name ID"];
-        const name = nameIdx !== undefined ? (row[nameIdx] || "") : "";
-
-        const rowVals = {};
-        for (const [header, ekey, dkey] of COLUMNS) {
-          const idx = headerIndex[header];
-          rowVals[header] = idx !== undefined ? cellToStr(row[idx]) : null;
-        }
-
-        const p = ergaById[pid];
-        if (p) {
-          for (const [header, ekey] of COLUMNS) {
-            if (ekey && ekey !== "id") {
-              const oldV = p[ekey] !== undefined ? p[ekey] : null;
-              let newV = rowVals[header];
-              if (ekey === "pct_labels") {
-                newV = newV ? newV.split("|").map(s => s.trim()) : null;
-              }
-              const changed = ekey === "pct_labels"
-                ? JSON.stringify(oldV) !== JSON.stringify(newV)
-                : oldV !== newV;
-              if (changed) {
-                changes.push({ pid, name, target: "ΧΑΡΤΗΣ", field: header, oldV, newV });
-                p[ekey] = newV;
-              }
-            }
-          }
-        }
-
-        const d = detail[pid];
-        if (d) {
-          const newVals = {};
-          for (const [header, , dkey] of COLUMNS) {
-            if (dkey) newVals[dkey] = rowVals[header];
-          }
-          (d.fields || []).forEach(fl => {
-            const canon = classifyDetailField(fl);
-            if (canon && Object.prototype.hasOwnProperty.call(newVals, canon)) {
-              const oldV = fl.value !== undefined ? fl.value : null;
-              const newV = newVals[canon];
-              if (oldV !== newV) {
-                changes.push({ pid, name, target: "ΛΕΠΤΟΜΕΡΕΙΑ", field: (fl.label || canon).replace(/\n/g, " / "), oldV, newV });
-              }
-              fl.value = newV;
-            }
-          });
-          if (Object.prototype.hasOwnProperty.call(newVals, "sheet") && d.sheet !== newVals.sheet) {
-            changes.push({ pid, name, target: "ΛΕΠΤΟΜΕΡΕΙΑ", field: "sheet", oldV: d.sheet, newV: newVals.sheet });
-            d.sheet = newVals.sheet;
-          }
+      // Ημερομηνία ενημέρωσης: κελί D1 (γραμμή 1, στήλη D).
+      // ΠΡΟΣΟΧΗ: αν το Excel αναγνώρισε το κελί ως πραγματική ημερομηνία (όχι απλό κείμενο),
+      // το SheetJS το μορφοποιεί με βάση το ΔΙΚΟ ΤΟΥ number format του κελιού (π.χ. "mm-dd-yy"),
+      // που μπορεί να είναι σε αγγλοσαξονική σειρά μήνας/ημέρα ανεξάρτητα από το πώς το βλέπεις
+      // εσύ μέσα στο Excel — γι' αυτό ΔΕΝ διαβάζουμε το προ-μορφοποιημένο κείμενο (.w) όταν το
+      // κελί είναι αριθμητικός τύπος ημερομηνίας, αλλά το ξαναφορμάρουμε εμείς ρητά σε dd/mm/yyyy.
+      var d1cell = ws['D1'];
+      updatedDate = null;
+      if (d1cell) {
+        if (d1cell.t === 'n' && typeof d1cell.v === 'number') {
+          updatedDate = XLSX.SSF.format('dd/mm/yyyy', d1cell.v);
+        } else if (d1cell.t === 'd' && d1cell.v instanceof Date) {
+          var dt = d1cell.v;
+          var pad = function(n){ return String(n).length < 2 ? '0' + n : String(n); };
+          updatedDate = pad(dt.getUTCDate()) + '/' + pad(dt.getUTCMonth() + 1) + '/' + dt.getUTCFullYear();
+        } else if (d1cell.w) {
+          updatedDate = String(d1cell.w).trim();
+        } else if (d1cell.v !== undefined && d1cell.v !== null) {
+          updatedDate = String(d1cell.v).trim();
         }
       }
 
-      if (changes.length) {
-        log(`Βρέθηκαν ${changes.length} αλλαγή/ές:\n`);
-        changes.forEach(c => {
-          log(`  [id ${c.pid} - ${c.name}] (${c.target}) ${c.field}:`);
-          log(`      πριν: ${shortVal(c.oldV)}`);
-          log(`      μετά: ${shortVal(c.newV)}`);
-        });
-      } else {
-        log("Δεν βρέθηκε καμία αλλαγή σε σχέση με τα τρέχοντα .js αρχεία.");
-      }
+      var hdr=all[hdrIdx].map(function(h){return String(h||'').replace(/\r\n/g,'\n')});
+      var data=all.slice(hdrIdx+1).filter(function(row){return row[0]&&String(row[0]).trim()!==''&&!isNaN(parseInt(row[0]))});
 
-      const newErgaText = dumpJsVar(ergaVar, erga);
-      const newDetailText = dumpJsVar(detailVar, detail);
-
-      log("\n✅ Μετατροπή ΟΚ. Κατέβασε τα νέα αρχεία παρακάτω και αντικατέστησε");
-      log("   τα παλιά μέσα στον φάκελο data/ του χάρτη σου.");
-
-      const ergaA = downloadBlob("ERGA_2.js", newErgaText);
-      const detailA = downloadBlob("detail_data.js", newDetailText);
-
-      const bothBtn = document.createElement("a");
-      bothBtn.href = "#";
-      bothBtn.className = "zip";
-      bothBtn.textContent = "⬇⬇ Κατέβασε και τα δύο μαζί";
-      bothBtn.addEventListener("click", e => {
-        e.preventDefault();
-        downloadBoth(ergaA, detailA);
+      parsed=data.map(function(row){
+        var obj={};
+        hdr.forEach(function(h,i){obj[h]=(row[i]===undefined||row[i]===null)?'':String(row[i]).trim()});
+        return obj;
       });
-      downloadsEl.appendChild(bothBtn);
 
-    } catch (err) {
-      log("\n❌ ΣΦΑΛΜΑ: " + err.message);
-      console.error(err);
-    } finally {
-      btn.disabled = false;
-    }
+      previewCard.style.display='block';
+      prev.innerHTML='<p style="margin-bottom:8px;font-weight:700;color:#1E3A5F">✅ Φορτώθηκαν '+parsed.length+' έργα από το sheet «'+shName+'»'+(updatedDate?' &nbsp;·&nbsp; 🗓️ Ενημέρωση: '+updatedDate:' &nbsp;·&nbsp; ⚠️ Δεν βρέθηκε ημερομηνία ενημέρωσης στο D1')+'</p>'+
+        '<table><thead><tr><th>ID</th><th>Πρόγραμμα</th><th>Τίτλος</th><th>Κατάσταση/Ποσοστά</th></tr></thead><tbody>'+
+        parsed.slice(0,8).map(function(p){
+          var cls=classify(p['Πρόγραμμα']);
+          var col=PROG_COLORS[cls]||'#64748b';
+          var stat=(p['Κατάσταση / Ποσοστά %\n(σύντομη – χάρτης)']||'').substring(0,40);
+          return '<tr><td><b>'+p['ID']+'</b></td>'+
+            '<td><span class="badge" style="background:'+col+'">'+(p['Tab (Πρόγραμμα)']||'').substring(0,16)+'</span></td>'+
+            '<td>'+(p['Τίτλος Έργου']||'').substring(0,45)+'</td>'+
+            '<td>'+stat+'</td></tr>';
+        }).join('')+
+        (parsed.length>8?'<tr><td colspan="4" style="color:#94a3b8;font-style:italic">…+'+(parsed.length-8)+' ακόμη έργα</td></tr>':'')+
+        '</tbody></table>';
+
+      btnErga.disabled=false; btnDetail.disabled=false; btnBoth.disabled=false;
+      ss('Έτοιμο! Κατέβασε τα αρχεία.','ok');
+    }catch(ex){ss('Σφάλμα: '+ex.message,'err');console.error(ex)}
+  };
+  r.readAsArrayBuffer(file);
+}
+
+function extractMisCode(raw){
+  if(!raw) return null;
+  var m = raw.match(/ΟΠΣ[:\s]*([0-9]{4,})/);
+  return m ? m[1] : null;
+}
+
+function buildErga2(){
+  if(!parsed) return null;
+  var features=parsed.map(function(row){
+    var tab=row['Tab (Πρόγραμμα)']||'';
+    var lat=parseFloat(String(row['Γεωγρ. Πλάτος']||'').replace(',','.'));
+    var lng=parseFloat(String(row['Γεωγρ. Μήκος']||'').replace(',','.'));
+    var labels=[row['Ετικέτα % 1'],row['Ετικέτα % 2'],row['Ετικέτα % 3']].filter(function(x){return x&&x.trim()!==''});
+    var misRaw = row['Κωδικός MIS / ΑΠ / GA / ΟΠΣ\n(αναλυτικός)']||'';
+    return{
+      type:'Feature',
+      properties:{
+        id:String(parseInt(row['ID'],10)),
+        'name ID':row['Σύντομο Όνομα']||null,
+        title:row['Τίτλος Έργου']||null,
+        mis_code:extractMisCode(misRaw),
+        fund_prog:row['Πρόγραμμα']||null,
+        'descr/tion':row['Αντικείμενο\n(descr/tion – αρχικό popup)']||null,
+        budg_fund:row['Χρηματοδότηση']||null,
+        contract_a:row['Ποσό Σύμβασης']||null,
+        contractor:row['Ανάδοχος']||null,
+        sign_date:row['Ημ. Υπογραφής']||null,
+        deadline:row['Προθεσμία (σύντομη)']||null,
+        status:row['Κατάσταση / Ποσοστά %\n(σύντομη – χάρτης)']||null,
+        critical_i:row['Κρίσιμα Θέματα /\nΆμεσες Ενέργειες']||null,
+        link:null,
+        pct_labels:labels.length>0?labels:null,
+        category:tab||null
+      },
+      geometry:{type:'Point',coordinates:[isNaN(lng)?null:lng,isNaN(lat)?null:lat]}
+    };
   });
+  var out={type:'FeatureCollection',name:'ERGA_2',
+    crs:{type:'name',properties:{name:'urn:ogc:def:crs:OGC:1.3:CRS84'}},
+    features:features};
+  if(updatedDate) out.updated_at=updatedDate;
+  return out;
+}
+
+// Πεδίο -> {key, label, header, type} για το analytic detail_data.js.
+// Οι πρώτα 8 keys (mis_code, budg_fund, contract_a, sign_date, deadline, descr/tion, status, critical_i)
+// ΠΡΕΠΕΙ να παραμείνουν ακριβώς αυτά — το site τα διαβάζει με ρητό key lookup (βλ. _gf() στο index.html).
+// Τα υπόλοιπα εμφανίζονται μόνο γενικά (label/value) στην αναλυτική εξαγωγή PDF, οπότε το key τους
+// δεν επηρεάζει τίποτα στην απεικόνιση — μπορούν να έχουν οποιοδήποτε ευανάγνωστο όνομα.
+var DETAIL_FIELDS = [
+  ['title','Τίτλος Έργου','Τίτλος Έργου','text'],
+  ['network','ΔΕΔ-Μ','ΔΕΔ-Μ','badge'],
+  ['beneficiary','Δικαιούχος','Δικαιούχος','text'],
+  ['budg_fund','Χρηματοδότηση','Χρηματοδότηση','money'],
+  ['contract_a','Ποσό Σύμβασης','Ποσό Σύμβασης','money'],
+  ['sign_date','Ημ. Υπογραφής','Ημ. Υπογραφής','date'],
+  ['deadline','Προθεσμία (σύντομη)','Προθεσμία (σύντομη)','date'],
+  ['mis_code','Κωδικός MIS / ΑΠ / GA / ΟΠΣ\n(αναλυτικός)','Κωδικός MIS / ΑΠ / GA / ΟΠΣ\n(αναλυτικός)','text'],
+  ['phase','Φάση Έργου','Φάση Έργου','phase'],
+  ['status','Αντικείμενο / Σχόλια\n(αναλυτικό – popup)','Αντικείμενο / Σχόλια\n(αναλυτικό – popup)','text'],
+  ['critical_i','Κρίσιμα Θέματα /\nΆμεσες Ενέργειες','Κρίσιμα Θέματα /\nΆμεσες Ενέργειες','text'],
+  ['budget_integration','Π/Υ Ένταξης Πράξης (ΔΔ)','Π/Υ Ένταξης Πράξης (ΔΔ)','money'],
+  ['legal_commit','Νομικές Δεσμεύσεις (ΔΔ)','Νομικές Δεσμεύσεις (ΔΔ)','money'],
+  ['payments','Πληρωμές / Δαπάνες (ΔΔ)','Πληρωμές / Δαπάνες (ΔΔ)','money'],
+  ['entry_date','Ημ/νία Ένταξης Πράξης','Ημ/νία Ένταξης Πράξης','date'],
+  ['completion_date','Ημ/νία Ολοκλήρωσης\n(detail)','Ημ/νία Ολοκλήρωσης\n(detail)','date'],
+  ['funding_pct','Ποσοστό Χρημ. (%)','Ποσοστό Χρημ. (%)','text'],
+  ['invitation','Πρόσκληση CEF','Πρόσκληση CEF','text'],
+  ['eligible_dd','Επιλέξιμη ΔΔ','Επιλέξιμη ΔΔ','text']
+];
+
+function buildDetailData(){
+  if(!parsed) return null;
+  var result={};
+  parsed.forEach(function(row){
+    var pid=String(parseInt(row['ID'],10));
+    if(!pid||pid==='NaN') return;
+    var fields=[];
+    DETAIL_FIELDS.forEach(function(def){
+      var key=def[0], label=def[1], header=def[2], type=def[3];
+      var v=(row[header]||'').trim();
+      if(v) fields.push({key:key,label:label,value:v,type:type});
+    });
+    result[pid]={sheet:row['Tab (Πρόγραμμα)']||null,fields:fields};
+  });
+  return result;
+}
+
+function download(content, filename){
+  var blob=new Blob([content],{type:'text/javascript'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=filename; a.click();
+}
+
+btnErga.addEventListener('click',function(){
+  try{
+    var geojson=buildErga2();
+    download('var json_ERGA_2 = '+JSON.stringify(geojson,null,2)+';\n','ERGA_2.js');
+    ss('✅ ERGA_2.js κατεβάζεται ('+geojson.features.length+' έργα). Βάλε το στον φάκελο data/ του site.','ok',document.getElementById('st2'));
+  }catch(ex){ss('Σφάλμα: '+ex.message,'err',document.getElementById('st2'));}
+});
+
+btnDetail.addEventListener('click',function(){
+  try{
+    var dd=buildDetailData();
+    var cnt=Object.keys(dd).length;
+    download('var DETAIL_DATA = '+JSON.stringify(dd,null,2)+';\n','detail_data.js');
+    ss('✅ detail_data.js κατεβάζεται ('+cnt+' έργα). Βάλε το στον φάκελο data/ του site.','ok',document.getElementById('st2'));
+  }catch(ex){ss('Σφάλμα: '+ex.message,'err',document.getElementById('st2'));}
+});
+
+btnBoth.addEventListener('click',function(){
+  try{
+    var geojson=buildErga2();
+    download('var json_ERGA_2 = '+JSON.stringify(geojson,null,2)+';\n','ERGA_2.js');
+    var dd=buildDetailData();
+    setTimeout(function(){
+      download('var DETAIL_DATA = '+JSON.stringify(dd,null,2)+';\n','detail_data.js');
+    }, 300);
+    ss('✅ Κατεβαίνουν και τα δύο αρχεία. Βάλε τα στον φάκελο data/ του site.','ok',document.getElementById('st2'));
+  }catch(ex){ss('Σφάλμα: '+ex.message,'err',document.getElementById('st2'));}
 });
 </script>
-
 </body>
 </html>
