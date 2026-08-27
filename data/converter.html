@@ -125,16 +125,63 @@ function load(file){
       }
 
       var hdr=all[hdrIdx].map(function(h){return String(h||'').replace(/\r\n/g,'\n')});
-      var data=all.slice(hdrIdx+1).filter(function(row){return row[0]&&String(row[0]).trim()!==''&&!isNaN(parseInt(row[0]))});
 
-      parsed=data.map(function(row){
+      // Keep each surviving row's ABSOLUTE sheet row index alongside it (not just its position in the
+      // filtered array) so we can go back to the real ws['<col><row>'] cell later — needed for the
+      // robust date re-read below, since blank/skipped rows would otherwise desync a simple position count.
+      var rawDataRows = all.slice(hdrIdx+1);
+      var validRows = [];
+      rawDataRows.forEach(function(row, ri){
+        if (row[0] && String(row[0]).trim()!=='' && !isNaN(parseInt(row[0]))) {
+          validRows.push({ absRow: hdrIdx+1+ri, row: row });
+        }
+      });
+
+      parsed = validRows.map(function(vr){
         var obj={};
-        hdr.forEach(function(h,i){obj[h]=(row[i]===undefined||row[i]===null)?'':String(row[i]).trim()});
+        hdr.forEach(function(h,i){obj[h]=(vr.row[i]===undefined||vr.row[i]===null)?'':String(vr.row[i]).trim()});
         return obj;
       });
 
+      // Robust re-read for date-like columns: same fix as D1 above, applied per-row. If Excel stored the
+      // cell as a real date/number (cell.t==='n'), the raw:false text above may already be in the wrong
+      // (mm/dd) order regardless of how the user sees it in Excel — re-format explicitly to dd/mm/yyyy.
+      // If the cell is plain text (e.g. typed as "11.09.2014"), cell.t!=='n' and we leave the parsed value as-is.
+      var DATE_HEADERS = ['Ημ. Υπογραφής','Προθεσμία (σύντομη)','Ημ/νία Ένταξης Πράξης','Ημ/νία Ολοκλήρωσης\n(detail)'];
+      validRows.forEach(function(vr, j){
+        DATE_HEADERS.forEach(function(h){
+          var c = hdr.indexOf(h);
+          if (c < 0) return;
+          var addr = XLSX.utils.encode_cell({ r: vr.absRow, c: c });
+          var cell = ws[addr];
+          if (!cell) return;
+          if (cell.t === 'n' && typeof cell.v === 'number') {
+            parsed[j][h] = XLSX.SSF.format('dd/mm/yyyy', cell.v);
+          } else if (cell.t === 'd' && cell.v instanceof Date) {
+            var dt = cell.v;
+            var pad = function(n){ return String(n).length<2?'0'+n:String(n); };
+            parsed[j][h] = pad(dt.getUTCDate())+'/'+pad(dt.getUTCMonth()+1)+'/'+dt.getUTCFullYear();
+          }
+        });
+      });
+
+      var warnings = validateRows(parsed);
+
       previewCard.style.display='block';
-      prev.innerHTML='<p style="margin-bottom:8px;font-weight:700;color:#1E3A5F">✅ Φορτώθηκαν '+parsed.length+' έργα από το sheet «'+shName+'»'+(updatedDate?' &nbsp;·&nbsp; 🗓️ Ενημέρωση: '+updatedDate:' &nbsp;·&nbsp; ⚠️ Δεν βρέθηκε ημερομηνία ενημέρωσης στο D1')+'</p>'+
+      var warnHtml;
+      if (warnings.length) {
+        warnHtml = '<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:10px 14px;margin-bottom:12px">'+
+          '<div style="font-weight:700;color:#c2410c;font-size:12px;margin-bottom:6px">⚠️ Προειδοποιήσεις ('+warnings.length+') — έλεγξε πριν χρησιμοποιήσεις τα αρχεία (δεν εμποδίζουν τη λήψη):</div>'+
+          '<ul style="margin:0;padding-left:18px">'+
+          warnings.slice(0,40).map(function(w){ return '<li style="font-size:11px;color:#7c2d12;margin-bottom:3px"><b>ID '+w.id+':</b> '+w.msg+'</li>'; }).join('')+
+          (warnings.length>40 ? '<li style="font-size:11px;color:#7c2d12;font-style:italic">…+'+(warnings.length-40)+' ακόμη προειδοποιήσεις</li>' : '')+
+          '</ul></div>';
+      } else {
+        warnHtml = '<div style="background:#dcfce7;border:1px solid #86efac;border-radius:8px;padding:8px 14px;margin-bottom:12px;color:#166534;font-size:12px;font-weight:600">✅ Δεν εντοπίστηκαν ύποπτα κελιά.</div>';
+      }
+
+      prev.innerHTML = warnHtml +
+        '<p style="margin-bottom:8px;font-weight:700;color:#1E3A5F">✅ Φορτώθηκαν '+parsed.length+' έργα από το sheet «'+shName+'»'+(updatedDate?' &nbsp;·&nbsp; 🗓️ Ενημέρωση: '+updatedDate:' &nbsp;·&nbsp; ⚠️ Δεν βρέθηκε ημερομηνία ενημέρωσης στο D1')+'</p>'+
         '<table><thead><tr><th>ID</th><th>Πρόγραμμα</th><th>Τίτλος</th><th>Κατάσταση/Ποσοστά</th></tr></thead><tbody>'+
         parsed.slice(0,8).map(function(p){
           var cls=classify(p['Πρόγραμμα']);
@@ -149,10 +196,53 @@ function load(file){
         '</tbody></table>';
 
       btnErga.disabled=false; btnDetail.disabled=false; btnBoth.disabled=false;
-      ss('Έτοιμο! Κατέβασε τα αρχεία.','ok');
+      ss(warnings.length ? '⚠️ Έτοιμο, αλλά υπάρχουν προειδοποιήσεις — δες παραπάνω.' : 'Έτοιμο! Κατέβασε τα αρχεία.', warnings.length ? 'info' : 'ok');
     }catch(ex){ss('Σφάλμα: '+ex.message,'err');console.error(ex)}
   };
   r.readAsArrayBuffer(file);
+}
+
+// ── Validation: flag suspicious rows before the files are even downloaded ──
+function validateRows(rows){
+  var warnings = [];
+  var seenIds = {};
+  var moneyLike = /\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\s*€/;
+  var dateLike = /^\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}/;
+  rows.forEach(function(row){
+    var id = row['ID'] || '?';
+
+    if (!row['Τίτλος Έργου']) warnings.push({id:id, msg:'Λείπει ο Τίτλος Έργου.'});
+
+    var latRaw = row['Γεωγρ. Πλάτος'], lonRaw = row['Γεωγρ. Μήκος'];
+    var lat = parseFloat(String(latRaw||'').replace(',','.'));
+    var lon = parseFloat(String(lonRaw||'').replace(',','.'));
+    if (!latRaw || !lonRaw || isNaN(lat) || isNaN(lon)) {
+      warnings.push({id:id, msg:'Λείπουν ή δεν είναι έγκυρες οι συντεταγμένες (Γεωγρ. Πλάτος/Μήκος).'});
+    } else if (lat < 33 || lat > 43 || lon < 18 || lon > 30) {
+      warnings.push({id:id, msg:'Οι συντεταγμένες ('+lat+', '+lon+') φαίνονται εκτός Ελλάδας — έλεγξε μήπως έχουν αντιστραφεί Πλάτος/Μήκος.'});
+    }
+
+    if (seenIds[id]) warnings.push({id:id, msg:'Το ID εμφανίζεται πάνω από μία φορά (διπλότυπο).'});
+    seenIds[id] = true;
+
+    var contractor = (row['Ανάδοχος']||'').trim();
+    var contractAmt = (row['Ποσό Σύμβασης']||'').trim();
+    if (moneyLike.test(contractor) && (!contractAmt || contractAmt === '-')) {
+      warnings.push({id:id, msg:'Το πεδίο «Ανάδοχος» περιέχει ποσό (€) ενώ το «Ποσό Σύμβασης» είναι κενό — πιθανή αντιστροφή στηλών.'});
+    }
+
+    // Only flag SHORT values that look like they were meant to be a bare date (e.g. an ISO-order date
+    // that slipped through, or a stray typo) — these fields legitimately also hold longer free-text
+    // estimates ("Grant Agreement: 16/10/2024", "3 έτη από τη συμβασιοποίηση"), which aren't errors
+    // and would otherwise drown out the real warnings.
+    ['Ημ. Υπογραφής','Ημ/νία Ένταξης Πράξης','Ημ/νία Ολοκλήρωσης\n(detail)'].forEach(function(h){
+      var v = (row[h]||'').trim();
+      if (v && v!=='-' && v!=='—' && v.length<=20 && !dateLike.test(v)) {
+        warnings.push({id:id, msg:'Η ημερομηνία στο πεδίο «'+h.replace(/\n/g,' ')+'» («'+v+'») δεν μοιάζει με έγκυρη ημερομηνία (αναμένεται μορφή ηη/μμ/εεεε).'});
+      }
+    });
+  });
+  return warnings;
 }
 
 function extractMisCode(raw){
