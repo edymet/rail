@@ -147,7 +147,7 @@ function load(file){
       // cell as a real date/number (cell.t==='n'), the raw:false text above may already be in the wrong
       // (mm/dd) order regardless of how the user sees it in Excel — re-format explicitly to dd/mm/yyyy.
       // If the cell is plain text (e.g. typed as "11.09.2014"), cell.t!=='n' and we leave the parsed value as-is.
-      var DATE_HEADERS = ['Ημ. Υπογραφής','Προθεσμία (σύντομη)','Ημ/νία Ένταξης Πράξης','Ημ/νία Ολοκλήρωσης\n(detail)'];
+      var DATE_HEADERS = ['Ημ. Υπογραφής','Προθεσμία (σύντομη)','Ημ/νία Ένταξης Πράξης'];
       validRows.forEach(function(vr, j){
         DATE_HEADERS.forEach(function(h){
           var c = hdr.indexOf(h);
@@ -235,7 +235,7 @@ function validateRows(rows){
     // that slipped through, or a stray typo) — these fields legitimately also hold longer free-text
     // estimates ("Grant Agreement: 16/10/2024", "3 έτη από τη συμβασιοποίηση"), which aren't errors
     // and would otherwise drown out the real warnings.
-    ['Ημ. Υπογραφής','Ημ/νία Ένταξης Πράξης','Ημ/νία Ολοκλήρωσης\n(detail)'].forEach(function(h){
+    ['Ημ. Υπογραφής','Ημ/νία Ένταξης Πράξης'].forEach(function(h){
       var v = (row[h]||'').trim();
       if (v && v!=='-' && v!=='—' && v.length<=20 && !dateLike.test(v)) {
         warnings.push({id:id, msg:'Η ημερομηνία στο πεδίο «'+h.replace(/\n/g,' ')+'» («'+v+'») δεν μοιάζει με έγκυρη ημερομηνία (αναμένεται μορφή ηη/μμ/εεεε).'});
@@ -275,6 +275,7 @@ function buildErga2(){
         deadline:row['Προθεσμία (σύντομη)']||null,
         status:row['Κατάσταση / Ποσοστά %\n(σύντομη – χάρτης)']||null,
         critical_i:row['Κρίσιμα Θέματα /\nΆμεσες Ενέργειες']||null,
+        phase:row['Φάση Κύριου Υποέργου']||null,
         link:null,
         pct_labels:labels.length>0?labels:null,
         category:tab||null
@@ -303,17 +304,10 @@ var DETAIL_FIELDS = [
   ['sign_date','Ημ. Υπογραφής','Ημ. Υπογραφής','date'],
   ['deadline','Προθεσμία (σύντομη)','Προθεσμία (σύντομη)','date'],
   ['mis_code','Κωδικός MIS / ΑΠ / GA / ΟΠΣ\n(αναλυτικός)','Κωδικός MIS / ΑΠ / GA / ΟΠΣ\n(αναλυτικός)','text'],
-  ['phase','Φάση Έργου','Φάση Έργου','phase'],
+  ['phase','Φάση Κύριου Υποέργου','Φάση Κύριου Υποέργου','phase'],
   ['status','Αντικείμενο / Σχόλια\n(αναλυτικό – popup)','Αντικείμενο / Σχόλια\n(αναλυτικό – popup)','text'],
   ['critical_i','Κρίσιμα Θέματα /\nΆμεσες Ενέργειες','Κρίσιμα Θέματα /\nΆμεσες Ενέργειες','text'],
-  ['budget_integration','Π/Υ Ένταξης Πράξης (ΔΔ)','Π/Υ Ένταξης Πράξης (ΔΔ)','money'],
-  ['legal_commit','Νομικές Δεσμεύσεις (ΔΔ)','Νομικές Δεσμεύσεις (ΔΔ)','money'],
-  ['payments','Πληρωμές / Δαπάνες (ΔΔ)','Πληρωμές / Δαπάνες (ΔΔ)','money'],
-  ['entry_date','Ημ/νία Ένταξης Πράξης','Ημ/νία Ένταξης Πράξης','date'],
-  ['completion_date','Ημ/νία Ολοκλήρωσης\n(detail)','Ημ/νία Ολοκλήρωσης\n(detail)','date'],
-  ['funding_pct','Ποσοστό Χρημ. (%)','Ποσοστό Χρημ. (%)','text'],
-  ['invitation','Πρόσκληση CEF','Πρόσκληση CEF','text'],
-  ['eligible_dd','Επιλέξιμη ΔΔ','Επιλέξιμη ΔΔ','text']
+  ['entry_date','Ημ/νία Ένταξης Πράξης','Ημ/νία Ένταξης Πράξης','date']
 ];
 
 function buildDetailData(){
